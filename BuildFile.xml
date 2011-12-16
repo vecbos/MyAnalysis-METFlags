@@ -58,6 +58,3 @@
 <use   name="TrackingTools/Records"/>
 <use   name="CalibCalorimetry/EcalTPGTools"/>
 <flags   EDM_PLUGIN="1"/>
-<export>
-  <lib   name="1"/>
-</export>
