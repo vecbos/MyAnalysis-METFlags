@@ -156,8 +156,6 @@ private:
   std::vector<DetId> avoidDuplicateVec;
   int setEvtRecHitstatus(const double &tpValCut, const int &chnStatus, const int &towerTest);
 
-  ofstream *outFile;
-
 };
 
 
@@ -175,7 +173,8 @@ void EcalDeadCellEventFlagProducer::loadEventInfoForFilter(const edm::Event &iEv
     if( hastpDigiCollection_ && hasReducedRecHits_>=2 ){ break; }
   }
 
-  std::cout<<"\nhastpDigiCollection_ : "<<hastpDigiCollection_<<"  hasReducedRecHits_ : "<<hasReducedRecHits_<<std::endl;
+  edm::LogInfo("EcalDeadCellEventFlagProducer") << "hastpDigiCollection_ : " << hastpDigiCollection_ 
+                                                << "  hasReducedRecHits_ : " << hasReducedRecHits_ ;
 
   const edm::ProcessHistory& history = iEvent.processHistory();
   const unsigned int nHist = history.size();
@@ -186,7 +185,8 @@ void EcalDeadCellEventFlagProducer::loadEventInfoForFilter(const edm::Event &iEv
   int majorV = TString(split->At(1)->GetName()).Atoi();
   int minorV = TString(split->At(2)->GetName()).Atoi();
 
-  std::cout<<"processName : "<<history[nHist-2].processName().data()<<"  releaseVersion : "<<releaseVersion_<<std::endl; 
+  edm::LogInfo("EcalDeadCellEventFlagProducer") << "processName : " << history[nHist-2].processName().data() 
+                                                << "  releaseVersion : " << releaseVersion_;
 
 // If TP is available, always use TP.
 // In RECO file, we always have ecalTPSkim (at least from 38X for data and 39X for MC).
@@ -194,17 +194,15 @@ void EcalDeadCellEventFlagProducer::loadEventInfoForFilter(const edm::Event &iEv
 // Do NOT expect end-users provide ecalTPSkim or recovered rechits themselves!!
 // If they really can provide them, they must be experts to modify this code to suit their own purpose :-)
   if( !hastpDigiCollection_ && !hasReducedRecHits_ ){ useTPmethod_ = false; useHITmethod_ = false; 
-     std::cout<<"\nWARNING ... Cannot find either tpDigiCollection_ or reducedRecHitCollecion_ ?!"<<std::endl;
-     std::cout<<"  Will NOT DO ANY FILTERING !"<<std::endl;
+    edm::LogWarning("EcalDeadCellEventFlagProducer") << "Cannot find either tpDigiCollection_ or reducedRecHitCollecion_ ?! Will NOT DO ANY FILTERING !";
   }
   else if( hastpDigiCollection_ ){ useTPmethod_ = true; useHITmethod_ = false; }
   else if( majorV >=4 && minorV >=2 ){ useTPmethod_ = false; useHITmethod_ = true; }
   else{ useTPmethod_ = false; useHITmethod_ = false; 
-     std::cout<<"\nWARNING ... TP filter can ONLY be used in AOD after 42X"<<std::endl;
-     std::cout<<"  Will NOT DO ANY FILTERING !"<<std::endl;
+    edm::LogWarning("EcalDeadCellEventFlagProducer") <<"\nWARNING ... TP filter can ONLY be used in AOD after 42X.  Will NOT DO ANY FILTERING !";
   }
 
-  std::cout<<"useTPmethod_ : "<<useTPmethod_<<"  useHITmethod_ : "<<useHITmethod_<<std::endl;
+  edm::LogInfo("EcalDeadCellEventFlagProducer") << "useTPmethod_ : " << useTPmethod_ << "  useHITmethod_ : " << useHITmethod_;
 
   getEventInfoForFilterOnce_ = true;
  
@@ -308,7 +306,7 @@ EcalDeadCellEventFlagProducer::~EcalDeadCellEventFlagProducer() {
 
 void EcalDeadCellEventFlagProducer::envSet(const edm::EventSetup& iSetup) {
 
-  if (debug_) std::cout << "***envSet***" << std::endl;
+  if (debug_) edm::LogInfo("EcalDeadCellEventFlagProducer") << "***envSet***";
 
   ecalScale_.setEventSetup( iSetup );
   iSetup.get<IdealGeometryRecord>().get(ttMap_);
@@ -363,10 +361,6 @@ void EcalDeadCellEventFlagProducer::produce(edm::Event& iEvent, const edm::Event
      printf("\nrun : %8d  event : %10d  lumi : %4d  evtTPstatus  ABS : %d  13 : % 2d\n", run, event, ls, evtstatusABS, evtTagged);
   }
 
-  if( !pass ){
-     (*outFile) <<run<<":"<<ls<<":"<<event<<std::endl;
-  }
-
   std::auto_ptr<bool> pOut( new bool(pass) ); 
   iEvent.put( pOut );
 
@@ -384,7 +378,8 @@ void EcalDeadCellEventFlagProducer::beginRun(edm::Run &run, const edm::EventSetu
 // Event setup
   envSet(iSetup);
   getChannelStatusMaps();
-  if( debug_) std::cout<< "EcalAllDeadChannelsValMap.size() : "<<EcalAllDeadChannelsValMap.size()<<"  EcalAllDeadChannelsBitMap.size() : "<<EcalAllDeadChannelsBitMap.size()<<std::endl;
+  if( debug_) edm::LogInfo("EcalDeadCellEventFlagProducer") << "EcalAllDeadChannelsValMap.size() : " << EcalAllDeadChannelsValMap.size()
+                                                            << "  EcalAllDeadChannelsBitMap.size() : " << EcalAllDeadChannelsBitMap.size();
 }
 
 // ------------ method called once each run just after starting event loop  ------------
@@ -392,8 +387,8 @@ void EcalDeadCellEventFlagProducer::endRun(edm::Run &run, const edm::EventSetup&
 
 int EcalDeadCellEventFlagProducer::setEvtRecHitstatus(const double &tpValCut, const int &chnStatus, const int &towerTest){
         
-  if( debug_ ) std::cout<<"***begin setEvtTPstatusRecHits***"<<std::endl;
-        
+  if( debug_ ) edm::LogInfo("EcalDeadCellEventFlagProducer") << "***begin setEvtTPstatusRecHits***";
+
   accuTTetMap.clear(); accuTTchnMap.clear(); TTzsideMap.clear();
   avoidDuplicateVec.clear();
         
@@ -443,7 +438,8 @@ int EcalDeadCellEventFlagProducer::setEvtRecHitstatus(const double &tpValCut, co
            if( towerTest <0 && bit2Itor->second.back() >= abs(towerTest) ) continue;
            towerTestCnt ++;
         }
-        if( towerTestCnt !=0 ) std::cout<<"towerTestCnt : "<<towerTestCnt<<"  for towerTest : "<<towerTest<<std::endl;
+        if( towerTestCnt !=0 ) if(debug_) edm::LogWarning("EcalDeadCellEventFlagProducer") << "towerTestCnt : " << towerTestCnt << 
+          "  for towerTest : " << towerTest;
 
         std::vector<DetId>::iterator avoidItor; avoidItor = find( avoidDuplicateVec.begin(), avoidDuplicateVec.end(), det);
         if( avoidItor == avoidDuplicateVec.end() ){
@@ -501,7 +497,7 @@ int EcalDeadCellEventFlagProducer::setEvtRecHitstatus(const double &tpValCut, co
            if( towerTest <0 && bit2Itor->second.back() >= abs(towerTest) ) continue;
            towerTestCnt ++;
         }
-        if( towerTestCnt !=0 ) std::cout<<"towerTestCnt : "<<towerTestCnt<<"  for towerTest : "<<towerTest<<std::endl;
+        if( towerTestCnt !=0 ) edm::LogWarning("EcalDeadCellEventFlagProducer") << "towerTestCnt : " << towerTestCnt << "  for towerTest : " << towerTest;
 
         std::vector<DetId>::iterator avoidItor; avoidItor = find( avoidDuplicateVec.begin(), avoidDuplicateVec.end(), det);
         if( avoidItor == avoidDuplicateVec.end() ){
@@ -530,18 +526,18 @@ int EcalDeadCellEventFlagProducer::setEvtRecHitstatus(const double &tpValCut, co
      double ttetVal = ttetItor->second;
 
      std::map<EcalTrigTowerDetId, int>::iterator ttchnItor = accuTTchnMap.find(ttDetId);
-     if( ttchnItor == accuTTchnMap.end() ){ cout<<"\nERROR  cannot find ttDetId : "<<ttDetId<<" in accuTTchnMap?!"<<endl<<endl; }
+     if( ttchnItor == accuTTchnMap.end() ){ edm::LogError("EcalDeadCellEventFlagProducer") << "Cannot find ttDetId : " << ttDetId << " in accuTTchnMap?!"; }
 
      std::map<EcalTrigTowerDetId, int>::iterator ttzsideItor = TTzsideMap.find(ttDetId);
-     if( ttzsideItor == TTzsideMap.end() ){ cout<<"\nERROR  cannot find ttDetId : "<<ttDetId<<" in TTzsideMap?!"<<endl<<endl; }
+     if( ttzsideItor == TTzsideMap.end() ){ edm::LogError("EcalDeadCellEventFlagProducer") << "Cannot find ttDetId : " << ttDetId << " in TTzsideMap?!"; }
 
-     if( ttchnItor->second != 25 ) cout<<"WARNING ... ttchnCnt : "<<ttchnItor->second<<"  NOT equal  25!"<<endl;
+     if( ttchnItor->second != 25 ) edm::LogWarning("EcalDeadCellEventFlagProducer") << "ttchnCnt : " << ttchnItor->second << "  NOT equal  25!";
 
      if( ttetVal >= tpValCut ){ isPassCut = 1; isPassCut *= ttzsideItor->second; }
 
   }
 
-  if( debug_ ) std::cout<<"***end setEvtTPstatusRecHits***"<<std::endl;
+  if( debug_ ) edm::LogInfo("EcalDeadCellEventFlagProducer") << "***end setEvtTPstatusRecHits***";
 
   return isPassCut;
 
@@ -550,7 +546,7 @@ int EcalDeadCellEventFlagProducer::setEvtRecHitstatus(const double &tpValCut, co
 
 int EcalDeadCellEventFlagProducer::setEvtTPstatus(const double &tpValCut, const int &chnStatus){
  
-  if( debug_ ) std::cout<<"***begin setEvtTPstatus***"<<std::endl;
+  if( debug_ ) edm::LogInfo("EcalDeadCellEventFlagProducer") << "***begin setEvtTPstatus***";
 
   int isPassCut =0;
 
@@ -585,7 +581,7 @@ int EcalDeadCellEventFlagProducer::setEvtTPstatus(const double &tpValCut, const 
      }
   } // loop over EB + EE
 
-  if( debug_ ) std::cout<<"***end setEvtTPstatus***"<<std::endl;
+  if( debug_ ) edm::LogInfo("EcalDeadCellEventFlagProducer") << "***end setEvtTPstatus***";
 
   return isPassCut;
 }
