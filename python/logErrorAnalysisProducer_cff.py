@@ -1,37 +1,75 @@
 import FWCore.ParameterSet.Config as cms
 
-tooManySeeds = cms.EDProducer("LogErrorAnalysis",
+tooManySeeds = cms.EDFilter("LogErrorEventFilter",
                               src = cms.InputTag("logErrorHarvester"),
                               maxErrorFractionInLumi = cms.double(1),
-                              # if more than 20% of the events in this lumi have errors, the lumi will be excluded from the run summary (not relevant for skimming)
                               maxErrorFractionInRun  = cms.double(1),
-                              # if more than 20% of the events in this run (excluding bad lumis) have errors, the run will be excluded (not relevant for skimming)
-                              maxSavedEventsPerLumiAndError = cms.uint32(999999999),
-                              # save events with errors but each error can get no no more than 10 events per lumi
-                              ##################################
-                              #categoriesToIgnore = cms.vstring("HLTConfigProvider","FastCloningDisabled"), # not concerned with some errors
-                              categoriesToWatch = cms.vstring("TooManySeeds"), # not concerned with some errors
-                              #you can find the error_name list at https://twiki.cern.ch/twiki/bin/view/CMS/RecoErrorsAndWarningsMeaning
-                              ##################################
-                              verbose = cms.untracked.bool(False), # dump summary information to stdout
-                              veryVerbose  = cms.untracked.bool(False) # dump even more info to stdout
+                              maxSavedEventsPerLumiAndError = cms.uint32(100000),
+                              categoriesToIgnore = cms.vstring("SeedGeneratorFromRegionHitsEDProducer:regionalCosmicTrackerSeeds",
+                                                               "PhotonConversionTrajectorySeedProducerFromSingleLeg:photonConvTrajSeedFromSingleLeg"),
+                              categoriesToWatch = cms.vstring("TooManySeeds"),
+                              verbose = cms.untracked.bool(False),
+                              veryVerbose  = cms.untracked.bool(False),
+                              taggedMode = cms.untracked.bool(True)
                               )
 
-tooManyClusters = cms.EDProducer("LogErrorAnalysis",
+tooManyClusters = cms.EDFilter("LogErrorEventFilter",
                                  src = cms.InputTag("logErrorHarvester"),
                                  maxErrorFractionInLumi = cms.double(1),
-                                 # if more than 20% of the events in this lumi have errors, the lumi will be excluded from the run summary (not relevant for skimming)
                                  maxErrorFractionInRun  = cms.double(1),
-                                 # if more than 20% of the events in this run (excluding bad lumis) have errors, the run will be excluded (not relevant for skimming)
-                                 maxSavedEventsPerLumiAndError = cms.uint32(999999999),
-                                 # save events with errors but each error can get no no more than 10 events per lumi
-                                 ##################################
-                                 #categoriesToIgnore = cms.vstring("HLTConfigProvider","FastCloningDisabled"), # not concerned with some errors
-                                 categoriesToWatch = cms.vstring("TooManyClusters"), # not concerned with some errors
-                                 #you can find the error_name list at https://twiki.cern.ch/twiki/bin/view/CMS/RecoErrorsAndWarningsMeaning
-                                 ##################################
-                                 verbose = cms.untracked.bool(False), # dump summary information to stdout
-                                 veryVerbose  = cms.untracked.bool(False) # dump even more info to stdout
+                                 maxSavedEventsPerLumiAndError = cms.uint32(100000),
+                                 categoriesToIgnore = cms.vstring("SeedGeneratorFromRegionHitsEDProducer:regionalCosmicTrackerSeeds",
+                                                                  "PhotonConversionTrajectorySeedProducerFromSingleLeg:photonConvTrajSeedFromSingleLeg"),
+                                 categoriesToWatch = cms.vstring("TooManyClusters"),
+                                 verbose = cms.untracked.bool(False),
+                                 veryVerbose  = cms.untracked.bool(False),
+                                 taggedMode = cms.untracked.bool(True)
                                  )
 
-logErrorAnalysis = cms.Sequence(tooManySeeds * tooManyClusters)
+tooManyTripletsPairs = cms.EDFilter("LogErrorEventFilter",
+                                    src = cms.InputTag("logErrorHarvester"),
+                                    maxErrorFractionInLumi = cms.double(1.0),
+                                    maxErrorFractionInRun  = cms.double(1.0),
+                                    maxSavedEventsPerLumiAndError = cms.uint32(100000),
+                                    categoriesToWatch = cms.vstring("TooManyTriplets","TooManyPairs","PixelTripletHLTGenerator"),
+                                    modulesToIgnore = cms.vstring("SeedGeneratorFromRegionHitsEDProducer:regionalCosmicTrackerSeeds",
+                                                                  "PhotonConversionTrajectorySeedProducerFromSingleLeg:photonConvTrajSeedFromSingleLeg"),
+                                    verbose = cms.untracked.bool(False),
+                                    veryVerbose  = cms.untracked.bool(False),
+                                    taggedMode = cms.untracked.bool(True)
+                                    )
+
+tooManyTripletsPairsMainIterations = cms.EDFilter("LogErrorEventFilter",
+                                                  src = cms.InputTag("logErrorHarvester"),
+                                                  maxErrorFractionInLumi = cms.double(1.0),
+                                                  maxErrorFractionInRun  = cms.double(1.0),
+                                                  maxSavedEventsPerLumiAndError = cms.uint32(100000),
+                                                  categoriesToWatch = cms.vstring("TooManyTriplets","TooManyPairs","PixelTripletHLTGenerator"),
+                                                  modulesToWatch = cms.vstring("SeedGeneratorFromRegionHitsEDProducer:initialStepSeeds",
+                                                                               "SeedGeneratorFromRegionHitsEDProducer:pixelPairStepSeeds"
+                                                                               ),
+                                                  verbose = cms.untracked.bool(False),
+                                                  veryVerbose  = cms.untracked.bool(False),
+                                                  taggedMode = cms.untracked.bool(True)
+                                                  )
+
+tooManySeedsMainIterations = cms.EDFilter("LogErrorEventFilter",
+                                          src = cms.InputTag("logErrorHarvester"),
+                                          maxErrorFractionInLumi = cms.double(1.0),
+                                          maxErrorFractionInRun  = cms.double(1.0),
+                                          maxSavedEventsPerLumiAndError = cms.uint32(100000),
+                                          categoriesToWatch = cms.vstring("TooManySeeds"),
+                                          modulesToWatch = cms.vstring("CkfTrackCandidateMaker:initialStepTrackCandidate",
+                                                                       "CkfTrackCandidateMaker:pixelPairTrackCandidate"
+                                                                       ),
+                                          verbose = cms.untracked.bool(False),
+                                          veryVerbose  = cms.untracked.bool(False),
+                                          taggedMode = cms.untracked.bool(True)
+                                          )
+
+
+logErrorAnalysis = cms.Sequence(tooManySeeds
+                                * tooManyClusters
+                                * tooManyTripletsPairs
+                                * tooManyTripletsPairsMainIterations
+                                * tooManySeedsMainIterations)
