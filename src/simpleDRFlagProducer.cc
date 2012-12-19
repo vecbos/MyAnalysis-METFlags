@@ -25,7 +25,6 @@
 
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDFilter.h"
-#include "FWCore/Framework/interface/EDProducer.h"
 
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
@@ -92,20 +91,22 @@
 #include "TTree.h"
 #include "TH1.h"
 
-class simpleDRFlagProducer : public edm::EDProducer {
+class simpleDRFlagProducer : public edm::EDFilter {
 public:
   explicit simpleDRFlagProducer(const edm::ParameterSet&);
   ~simpleDRFlagProducer();
 
 private:
-  virtual void produce(edm::Event&, const edm::EventSetup&);
+  virtual bool filter(edm::Event&, const edm::EventSetup&);
   virtual void beginJob();
   virtual void endJob();
-  virtual void beginRun(edm::Run&, const edm::EventSetup&);
-  virtual void endRun(edm::Run&, const edm::EventSetup&);
+  virtual bool beginRun(edm::Run&, const edm::EventSetup&);
+  virtual bool endRun(edm::Run&, const edm::EventSetup&);
   virtual void envSet(const edm::EventSetup&);
 
   // ----------member data ---------------------------
+  const bool            taggingMode_;
+
   edm::InputTag jetInputTag_;
   edm::Handle<edm::View<reco::Jet> > jets;
 // jet selection cut: pt, eta
@@ -126,8 +127,6 @@ private:
   unsigned int run, event, ls; bool isdata;
 
   double calomet, calometPhi, tcmet, tcmetPhi, pfmet, pfmetPhi;
-
-  bool doFilter_;
 
 // Channel status related
   edm::ESHandle<EcalChannelStatus>  ecalStatus; // these come from EventSetup
@@ -212,12 +211,11 @@ void simpleDRFlagProducer::loadJets(const edm::Event& iEvent, const edm::EventSe
 //
 // constructors and destructor
 //
-simpleDRFlagProducer::simpleDRFlagProducer(const edm::ParameterSet& iConfig){
+simpleDRFlagProducer::simpleDRFlagProducer(const edm::ParameterSet& iConfig) :
+  taggingMode_( iConfig.getParameter<bool>("taggingMode") ) {
 
   debug_= iConfig.getUntrackedParameter<bool>("debug",false);
   printSkimInfo_= iConfig.getUntrackedParameter<bool>("printSkimInfo",false);
-
-  doFilter_ = iConfig.getUntrackedParameter<bool>("doFilter",false);
 
   jetInputTag_ = iConfig.getParameter<edm::InputTag>("jetInputTag");
   jetSelCuts_ = iConfig.getParameter<std::vector<double> >("jetSelCuts");
@@ -243,6 +241,7 @@ simpleDRFlagProducer::simpleDRFlagProducer(const edm::ParameterSet& iConfig){
   cracksHEHFdef_ = iConfig.getParameter<std::vector<double> > ("cracksHEHFdef");
 
   produces<int> ("deadCellStatus"); produces<int> ("boundaryStatus");
+  produces<bool>();
 
   if( makeProfileRoot_ ){
      profFile = new TFile(profileRootName_.c_str(), "RECREATE");
@@ -279,7 +278,7 @@ void simpleDRFlagProducer::envSet(const edm::EventSetup& iSetup) {
 }
 
 // ------------ method called on each new Event  ------------
-void simpleDRFlagProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
+bool simpleDRFlagProducer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup) {
 
   loadEventInfo(iEvent, iSetup);
   loadJets(iEvent, iSetup);
@@ -305,7 +304,7 @@ void simpleDRFlagProducer::produce(edm::Event& iEvent, const edm::EventSetup& iS
   if( seledJets.empty() ) {
     iEvent.put( deadCellStatusPtr, "deadCellStatus");
     iEvent.put( boundaryStatusPtr, "boundaryStatus");    
-    return;
+    return taggingMode_ || (deadCellStatus==1 && boundaryStatus==1);
   }
 
   double dPhiToMET = simpleDRFlagProducerInput_[0], dRtoDeadCell = simpleDRFlagProducerInput_[1];
@@ -332,6 +331,8 @@ void simpleDRFlagProducer::produce(edm::Event& iEvent, const edm::EventSetup& iS
   iEvent.put( deadCellStatusPtr, "deadCellStatus");
   iEvent.put( boundaryStatusPtr, "boundaryStatus");
 
+  return taggingMode_ || (deadCellStatus==1 && boundaryStatus==1);
+
 }
 
 // ------------ method called once each job just before starting event loop  ------------
@@ -345,18 +346,20 @@ void simpleDRFlagProducer::endJob() {
 }
 
 // ------------ method called once each run just before starting event loop  ------------
-void simpleDRFlagProducer::beginRun(edm::Run &run, const edm::EventSetup& iSetup) {
+bool simpleDRFlagProducer::beginRun(edm::Run &run, const edm::EventSetup& iSetup) {
   if (debug_) std::cout << "beginRun" << std::endl;
 // Channel status might change for each run (data)
 // Event setup
   envSet(iSetup);
   getChannelStatusMaps();
   if( debug_) std::cout<< "EcalAllDeadChannelsValMap.size() : "<<EcalAllDeadChannelsValMap.size()<<"  EcalAllDeadChannelsBitMap.size() : "<<EcalAllDeadChannelsBitMap.size()<<std::endl;
+  return true;
 }
 
 // ------------ method called once each run just after starting event loop  ------------
-void simpleDRFlagProducer::endRun(edm::Run &run, const edm::EventSetup& iSetup) {
+bool simpleDRFlagProducer::endRun(edm::Run &run, const edm::EventSetup& iSetup) {
   if (debug_) std::cout << "endRun" << std::endl;
+  return true;
 }
 
 

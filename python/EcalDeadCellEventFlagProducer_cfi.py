@@ -1,12 +1,12 @@
 import FWCore.ParameterSet.Config as cms
 
-EcalDeadCellEventFlagProducer = cms.EDProducer(
+EcalDeadCellEventFlagProducer = cms.EDFilter(
     'EcalDeadCellEventFlagProducer',
 
     # when activated, the filter does not filter event.
     # the filter is however storing a bool in the event, that can be used to take the
     # filtering decision a posteriori
-    taggingMode = cms.bool( False ),
+    taggingMode = cms.bool( True ),
     
     debug = cms.untracked.bool( False ),
     

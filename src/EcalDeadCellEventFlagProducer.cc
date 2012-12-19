@@ -22,7 +22,7 @@
 #include "FWCore/Framework/interface/ESHandle.h"
 
 #include "FWCore/Framework/interface/Frameworkfwd.h"
-#include "FWCore/Framework/interface/EDProducer.h"
+#include "FWCore/Framework/interface/EDFilter.h"
 
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
@@ -65,17 +65,17 @@
 
 using namespace std;
 
-class EcalDeadCellEventFlagProducer : public edm::EDProducer {
+class EcalDeadCellEventFlagProducer : public edm::EDFilter {
 public:
   explicit EcalDeadCellEventFlagProducer(const edm::ParameterSet&);
   ~EcalDeadCellEventFlagProducer();
 
 private:
-  virtual void produce(edm::Event&, const edm::EventSetup&);
+  virtual bool filter(edm::Event&, const edm::EventSetup&);
   virtual void beginJob();
   virtual void endJob();
-  virtual void beginRun(edm::Run&, const edm::EventSetup&);
-  virtual void endRun(edm::Run&, const edm::EventSetup&);
+  virtual bool beginRun(edm::Run&, const edm::EventSetup&);
+  virtual bool endRun(edm::Run&, const edm::EventSetup&);
   virtual void envSet(const edm::EventSetup&);
 
   // ----------member data ---------------------------
@@ -320,7 +320,7 @@ void EcalDeadCellEventFlagProducer::envSet(const edm::EventSetup& iSetup) {
 }
 
 // ------------ method called on each new Event  ------------
-void EcalDeadCellEventFlagProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
+bool EcalDeadCellEventFlagProducer::filter(edm::Event& iEvent, const edm::EventSetup& iSetup) {
 
   std::vector<int> cutFlowFlagTmpVec; std::vector<std::string> cutFlowStrTmpVec;
 
@@ -364,6 +364,8 @@ void EcalDeadCellEventFlagProducer::produce(edm::Event& iEvent, const edm::Event
   std::auto_ptr<bool> pOut( new bool(pass) ); 
   iEvent.put( pOut );
 
+  return taggingMode_ || pass; // return false if filtering and not enough tracks in event
+
 }
 
 // ------------ method called once each job just before starting event loop  ------------
@@ -373,17 +375,18 @@ void EcalDeadCellEventFlagProducer::beginJob() { }
 void EcalDeadCellEventFlagProducer::endJob() { }
 
 // ------------ method called once each run just before starting event loop  ------------
-void EcalDeadCellEventFlagProducer::beginRun(edm::Run &run, const edm::EventSetup& iSetup) {
+bool EcalDeadCellEventFlagProducer::beginRun(edm::Run &run, const edm::EventSetup& iSetup) {
 // Channel status might change for each run (data)
 // Event setup
   envSet(iSetup);
   getChannelStatusMaps();
   if( debug_) edm::LogInfo("EcalDeadCellEventFlagProducer") << "EcalAllDeadChannelsValMap.size() : " << EcalAllDeadChannelsValMap.size()
                                                             << "  EcalAllDeadChannelsBitMap.size() : " << EcalAllDeadChannelsBitMap.size();
+  return true;
 }
 
 // ------------ method called once each run just after starting event loop  ------------
-void EcalDeadCellEventFlagProducer::endRun(edm::Run &run, const edm::EventSetup& iSetup) { }
+bool EcalDeadCellEventFlagProducer::endRun(edm::Run &run, const edm::EventSetup& iSetup) { return true; }
 
 int EcalDeadCellEventFlagProducer::setEvtRecHitstatus(const double &tpValCut, const int &chnStatus, const int &towerTest){
         

@@ -1,13 +1,13 @@
 import FWCore.ParameterSet.Config as cms
 
-simpleDRFlagProducer = cms.EDProducer('simpleDRFlagProducer',
+simpleDRFlagProducer = cms.EDFilter('simpleDRFlagProducer',
 
 # In debug mode, there are print-out if the MET is due to dead cell or cracks
   debug = cms.untracked.bool( False ),
 # No usage now
   printSkimInfo = cms.untracked.bool( False ),
 # If enabled, events with MET due to dead cell are rejected
-  doFilter = cms.untracked.bool( False ),
+  taggingMode = cms.bool( True ),
 
 # It's written in general that one can put pf, calo and tracking jets
   jetInputTag = cms.InputTag('ak5PFJets'),
